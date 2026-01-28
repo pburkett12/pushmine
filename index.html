@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pushmine</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Pushmine</h1>
+      <p class="subtitle">Local play vs AI with mines, pushes, and 4-in-a-row tactics.</p>
+    </header>
+
+    <section class="controls">
+      <div class="control">
+        <label for="difficulty">AI Difficulty</label>
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="firstPlayer">First Player</label>
+        <select id="firstPlayer">
+          <option value="P1">Player 1 (You)</option>
+          <option value="P2">Player 2 (AI)</option>
+        </select>
+      </div>
+      <button id="restart">Restart Game</button>
+    </section>
+
+    <section class="status">
+      <div class="status-card" id="turnStatus"></div>
+      <div class="status-card">
+        <h2>Inventory</h2>
+        <div class="inventory">
+          <span class="player-badge p1">P1 Mines: <strong id="p1Mines">0</strong></span>
+          <span class="player-badge p2">P2 Mines: <strong id="p2Mines">0</strong></span>
+        </div>
+        <p class="hint" id="actionHint"></p>
+      </div>
+    </section>
+
+    <section class="board-wrapper">
+      <div id="board" class="board" aria-label="Pushmine board"></div>
+    </section>
+
+    <section class="metrics">
+      <h2>Gameplay Metrics</h2>
+      <div class="metric-grid">
+        <div>
+          <h3>Outcome</h3>
+          <p id="outcome">In progress</p>
+        </div>
+        <div>
+          <h3>Game Length</h3>
+          <p id="turnCount">0 turns</p>
+        </div>
+        <div>
+          <h3>Mines Earned</h3>
+          <p>P1: <span id="p1MinesEarned">0</span> | P2: <span id="p2MinesEarned">0</span></p>
+        </div>
+        <div>
+          <h3>Mines Placed</h3>
+          <p>P1: <span id="p1MinesPlaced">0</span> | P2: <span id="p2MinesPlaced">0</span></p>
+        </div>
+        <div>
+          <h3>Mines Detonated</h3>
+          <p>Total: <span id="minesDetonated">0</span> | P1 Stones Lost: <span id="p1Detonated">0</span> | P2 Stones Lost: <span id="p2Detonated">0</span></p>
+        </div>
+        <div>
+          <h3>Ejections</h3>
+          <p>P1 Opponent Ejections: <span id="p1OppEject">0</span> | P1 Self Ejections: <span id="p1SelfEject">0</span></p>
+          <p>P2 Opponent Ejections: <span id="p2OppEject">0</span> | P2 Self Ejections: <span id="p2SelfEject">0</span></p>
+        </div>
+        <div>
+          <h3>Mine Impact Proxy</h3>
+          <p>P1: <span id="p1MineImpact">0</span> | P2: <span id="p2MineImpact">0</span></p>
+        </div>
+        <div>
+          <h3>Repetition Signals</h3>
+          <p>Most repeated state: <span id="repeatHigh">1</span>x</p>
+          <p>Longest cycle detected: <span id="longestCycle">0</span> turns</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -194,3 +194,17 @@ B) **Dud**
   - Example: if last turn pushed Row 2 from the left, next player cannot push Row 2 from the right.
 - Goal: reduce trivial back-and-forth cycles without adding heavy rules.
 (Only add if repetition shows up in metrics or it feels bad in play.)
+
+---
+
+## Implementation Progress
+
+### Implemented
+- Built a playable 5×5 Pushmine game with full push + mine mechanics, local play vs. AI (easy/medium/hard), and UI controls for starting player and difficulty.
+- Added board UI with edge arrows for push moves, mine placement on empty cells when available, win/draw handling, and gameplay metric tracking for playtest evaluation.
+
+### Questions
+
+### Problems Identified
+
+### Planned Changes
