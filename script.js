@@ -61,7 +61,6 @@ function initialMetrics() {
       mostRepeated: 1,
       longestCycle: 0,
     },
-    moveHistory: [],
   };
 }
 
@@ -73,6 +72,7 @@ function resetGame() {
     inventories: { P1: 0, P2: 0 },
     aiPlayer: "P2",
     humanPlayer: "P1",
+    lastPush: null,
     metrics: initialMetrics(),
     gameOver: false,
   };
@@ -190,7 +190,7 @@ function renderBoard() {
         arrow.dataset.line = dir.line;
         arrow.dataset.index = dir.index;
         arrow.dataset.side = dir.side;
-        if (!canPlayerAct()) {
+        if (!canPlayerAct() || !isPushAllowed(gameState, dir)) {
           arrow.classList.add("disabled");
         }
         arrow.addEventListener("click", handleArrowClick);
@@ -252,6 +252,7 @@ function handleArrowClick(event) {
     index: Number(index),
     side,
   };
+  if (!isPushAllowed(gameState, action)) return;
   applyAction(action, true);
 }
 
@@ -273,28 +274,24 @@ function applyAction(action, commit) {
   if (action.type === "push") {
     const result = pushLine(state, action, commit);
     minesEarned = result.minesEarned;
-    if (commit) {
-      state.metrics.moveHistory.push(action);
-      state.metrics.moveHistory = state.metrics.moveHistory.slice(-6);
-    }
+    state.lastPush = { line: action.line, index: action.index, side: action.side };
   } else if (action.type === "mine") {
     let beforeWins = 0;
     if (commit) {
       const opponent = otherPlayer(player);
-      beforeWins = countImmediateWins(state.board, opponent);
+      beforeWins = countImmediateWins(state, opponent);
     }
     state.board[action.row][action.col] = "M";
     state.inventories[player] -= 1;
     if (commit) {
       state.metrics.minesPlaced[player] += 1;
       const opponent = otherPlayer(player);
-      const afterWins = countImmediateWins(state.board, opponent);
+      const afterWins = countImmediateWins(state, opponent);
       if (beforeWins > 0 && afterWins === 0) {
         state.metrics.mineImpact[player] += 1;
       }
-      state.metrics.moveHistory.push(action);
-      state.metrics.moveHistory = state.metrics.moveHistory.slice(-6);
     }
+    state.lastPush = null;
   }
 
   if (commit) {
@@ -305,14 +302,9 @@ function applyAction(action, commit) {
   }
 
   const winner = determineWinner(state.board, player);
-  const drawByMirror = commit && checkMirrorDraw(state.metrics.moveHistory);
-  if (winner || drawByMirror) {
+  if (winner) {
     if (commit) {
-      if (winner) {
-        state.metrics.outcome = `${PLAYER_NAMES[winner]} wins`;
-      } else {
-        state.metrics.outcome = "Draw (mirror repetition)";
-      }
+      state.metrics.outcome = `${PLAYER_NAMES[winner]} wins`;
       state.gameOver = true;
     }
   } else {
@@ -421,36 +413,6 @@ function hasFour(board, player) {
   return false;
 }
 
-function checkMirrorDraw(history) {
-  if (history.length < 6) return false;
-  const recent = history.slice(-6);
-  if (!recent.every((move) => move.type === "push")) return false;
-  const [m1, m2, m3, m4, m5, m6] = recent;
-  const sameMove = (a, b) => a.line === b.line && a.index === b.index && a.side === b.side;
-  return (
-    isMirror(m1, m2) &&
-    isMirror(m3, m4) &&
-    isMirror(m5, m6) &&
-    sameMove(m1, m3) &&
-    sameMove(m1, m5) &&
-    sameMove(m2, m4) &&
-    sameMove(m2, m6)
-  );
-}
-
-function isMirror(moveA, moveB) {
-  if (moveA.line !== moveB.line || moveA.index !== moveB.index) return false;
-  const mirrorSide =
-    moveA.side === "left"
-      ? "right"
-      : moveA.side === "right"
-      ? "left"
-      : moveA.side === "top"
-      ? "bottom"
-      : "top";
-  return mirrorSide === moveB.side;
-}
-
 function cloneState(state) {
   return {
     board: cloneBoard(state.board),
@@ -458,23 +420,30 @@ function cloneState(state) {
     inventories: { ...state.inventories },
     aiPlayer: state.aiPlayer,
     humanPlayer: state.humanPlayer,
+    lastPush: state.lastPush ? { ...state.lastPush } : null,
     gameOver: state.gameOver,
     metrics: state.metrics,
   };
 }
 
-function countImmediateWins(board, player) {
+function countImmediateWins(state, player) {
   let wins = 0;
-  for (const action of generatePushActions()) {
-    const next = { board: cloneBoard(board), currentPlayer: player, inventories: { P1: 0, P2: 0 } };
+  for (const action of generatePushActions(state)) {
+    const next = {
+      board: cloneBoard(state.board),
+      currentPlayer: player,
+      inventories: { P1: 0, P2: 0 },
+      lastPush: state.lastPush ? { ...state.lastPush } : null,
+    };
     pushLine(next, action, false);
+    next.lastPush = { line: action.line, index: action.index, side: action.side };
     const winner = determineWinner(next.board, player);
     if (winner === player) wins += 1;
   }
   return wins;
 }
 
-function generatePushActions() {
+function generatePushActions(state) {
   const actions = [];
   for (let i = 0; i < BOARD_SIZE; i += 1) {
     actions.push({ type: "push", line: "row", index: i, side: "left" });
@@ -482,11 +451,12 @@ function generatePushActions() {
     actions.push({ type: "push", line: "col", index: i, side: "top" });
     actions.push({ type: "push", line: "col", index: i, side: "bottom" });
   }
-  return actions;
+  if (!state) return actions;
+  return actions.filter((action) => isPushAllowed(state, action));
 }
 
 function generateLegalActions(state) {
-  const actions = generatePushActions();
+  const actions = generatePushActions(state);
   if (state.inventories[state.currentPlayer] > 0) {
     for (let r = 0; r < BOARD_SIZE; r += 1) {
       for (let c = 0; c < BOARD_SIZE; c += 1) {
@@ -499,6 +469,20 @@ function generateLegalActions(state) {
   return actions;
 }
 
+function isPushAllowed(state, action) {
+  if (!state.lastPush) return true;
+  if (state.lastPush.line !== action.line || state.lastPush.index !== action.index) return true;
+  const oppositeSide =
+    state.lastPush.side === "left"
+      ? "right"
+      : state.lastPush.side === "right"
+      ? "left"
+      : state.lastPush.side === "top"
+      ? "bottom"
+      : "top";
+  return action.side !== oppositeSide;
+}
+
 function evaluateState(state, player) {
   const winner = determineWinner(state.board, otherPlayer(state.currentPlayer));
   if (winner === player) return 10000;
@@ -506,7 +490,7 @@ function evaluateState(state, player) {
 
   const opp = otherPlayer(player);
   const threats = countOpenThrees(state.board, player) - countOpenThrees(state.board, opp);
-  const oppImmediateWins = countImmediateWins(state.board, opp);
+  const oppImmediateWins = countImmediateWins(state, opp);
   const mineValue = state.inventories[player] * 3 - state.inventories[opp] * 2;
   return threats * 15 - oppImmediateWins * 40 + mineValue;
 }
@@ -570,7 +554,7 @@ function chooseAiAction(difficulty) {
 function chooseEasyAction() {
   const player = gameState.currentPlayer;
   const opponent = otherPlayer(player);
-  const pushActions = generatePushActions();
+  const pushActions = generatePushActions(gameState);
   const winningPushes = pushActions.filter((action) => {
     const sim = applyAction(action, false);
     return determineWinner(sim.board, player) === player;
@@ -579,12 +563,12 @@ function chooseEasyAction() {
     return winningPushes[Math.floor(Math.random() * winningPushes.length)];
   }
 
-  const opponentImmediateWins = countImmediateWins(gameState.board, opponent);
+  const opponentImmediateWins = countImmediateWins(gameState, opponent);
   if (gameState.inventories[player] > 0 && opponentImmediateWins > 0) {
     const mineActions = generateLegalActions(gameState).filter((action) => action.type === "mine");
     const blocking = mineActions.filter((action) => {
       const sim = applyAction(action, false);
-      const after = countImmediateWins(sim.board, opponent);
+      const after = countImmediateWins(sim, opponent);
       return after === 0;
     });
     if (blocking.length) {
