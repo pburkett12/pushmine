@@ -73,6 +73,7 @@ function resetGame() {
     aiPlayer: "P2",
     humanPlayer: "P1",
     lastPush: null,
+    lastAction: null,
     metrics: initialMetrics(),
     gameOver: false,
   };
@@ -190,6 +191,9 @@ function renderBoard() {
         arrow.dataset.line = dir.line;
         arrow.dataset.index = dir.index;
         arrow.dataset.side = dir.side;
+        if (isLastActionPush(dir)) {
+          arrow.classList.add("last-move");
+        }
         if (!canPlayerAct() || !isPushAllowed(gameState, dir)) {
           arrow.classList.add("disabled");
         }
@@ -206,6 +210,9 @@ function renderBoard() {
       cell.dataset.col = boardCol;
       if (!canPlayerAct()) {
         cell.classList.add("disabled");
+      }
+      if (isCellLastAction(boardRow, boardCol)) {
+        cell.classList.add("last-move");
       }
       if (value === null) {
         cell.classList.add("empty");
@@ -275,6 +282,7 @@ function applyAction(action, commit) {
     const result = pushLine(state, action, commit);
     minesEarned = result.minesEarned;
     state.lastPush = { line: action.line, index: action.index, side: action.side };
+    state.lastAction = { ...action };
   } else if (action.type === "mine") {
     let beforeWins = 0;
     if (commit) {
@@ -292,6 +300,7 @@ function applyAction(action, commit) {
       }
     }
     state.lastPush = null;
+    state.lastAction = { ...action };
   }
 
   if (commit) {
@@ -421,9 +430,29 @@ function cloneState(state) {
     aiPlayer: state.aiPlayer,
     humanPlayer: state.humanPlayer,
     lastPush: state.lastPush ? { ...state.lastPush } : null,
+    lastAction: state.lastAction ? { ...state.lastAction } : null,
     gameOver: state.gameOver,
     metrics: state.metrics,
   };
+}
+
+function isLastActionPush(dir) {
+  const action = gameState.lastAction;
+  if (!action || action.type !== "push") return false;
+  return action.line === dir.line && action.index === dir.index && action.side === dir.side;
+}
+
+function isCellLastAction(row, col) {
+  const action = gameState.lastAction;
+  if (!action) return false;
+  if (action.type === "mine") {
+    return action.row === row && action.col === col;
+  }
+  if (action.type === "push") {
+    if (action.line === "row" && action.index === row) return true;
+    if (action.line === "col" && action.index === col) return true;
+  }
+  return false;
 }
 
 function countImmediateWins(state, player) {
@@ -542,7 +571,7 @@ function maybeTriggerAi() {
     const action = chooseAiAction(difficulty);
     aiBusy = false;
     applyAction(action, true);
-  }, 200);
+  }, 700);
 }
 
 function chooseAiAction(difficulty) {

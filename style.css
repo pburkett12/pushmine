@@ -170,6 +170,15 @@ button:hover {
   transform: none;
 }
 
+.last-move {
+  box-shadow: inset 0 0 0 2px rgba(45, 89, 243, 0.35);
+  background: #f6f7ff;
+}
+
+.cell.last-move {
+  box-shadow: inset 0 0 0 2px rgba(88, 96, 122, 0.35);
+}
+
 .stone {
   width: 32px;
   height: 32px;
