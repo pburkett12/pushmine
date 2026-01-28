@@ -607,7 +607,7 @@ function chooseEasyAction() {
 
   const safePushes = pushActions.filter((action) => {
     const sim = applyAction(action, false);
-    const oppWins = countImmediateWins(sim.board, opponent);
+    const oppWins = countImmediateWins(sim, opponent);
     return oppWins === 0;
   });
   const choicePool = safePushes.length ? safePushes : pushActions;
