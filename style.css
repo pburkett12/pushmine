@@ -201,6 +201,30 @@ button:hover {
   border: 1px solid #e0e3ef;
 }
 
+.log-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e0e3ef;
+}
+
+.log-entries {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #3b4256;
+}
+
+.log-entry {
+  padding: 8px 10px;
+  background: #f8f9fd;
+  border-radius: 8px;
+  border: 1px solid #e5e8f4;
+}
+
 .metric-grid {
   display: grid;
   gap: 16px;

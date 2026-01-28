@@ -37,6 +37,7 @@ const PLAYER_NAMES = {
 
 let gameState = null;
 let aiBusy = false;
+const moveLog = [];
 
 function createEmptyBoard() {
   return Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null));
@@ -78,6 +79,7 @@ function resetGame() {
     gameOver: false,
   };
   aiBusy = false;
+  addLogEntry("Game restarted.");
   updateRepetitionMetrics();
   render();
   maybeTriggerAi();
@@ -124,6 +126,7 @@ function updateRepetitionMetrics() {
 function render() {
   renderBoard();
   renderStatus();
+  renderLog();
   renderMetrics();
 }
 
@@ -144,6 +147,18 @@ function renderStatus() {
       : "Click an arrow to push a line.";
   } else {
     actionHintEl.textContent = "AI is thinking...";
+  }
+}
+
+function renderLog() {
+  const logEl = document.getElementById("moveLog");
+  logEl.innerHTML = "";
+  const entries = [...moveLog].reverse();
+  for (const entry of entries) {
+    const item = document.createElement("div");
+    item.className = "log-entry";
+    item.textContent = entry;
+    logEl.appendChild(item);
   }
 }
 
@@ -278,11 +293,15 @@ function applyAction(action, commit) {
   const state = commit ? gameState : cloneState(gameState);
   const player = state.currentPlayer;
   let minesEarned = 0;
+  let pushResult = null;
   if (action.type === "push") {
-    const result = pushLine(state, action, commit);
-    minesEarned = result.minesEarned;
+    pushResult = pushLine(state, action, commit);
+    minesEarned = pushResult.minesEarned;
     state.lastPush = { line: action.line, index: action.index, side: action.side };
     state.lastAction = { ...action };
+    if (commit) {
+      addLogEntry(buildPushLog(player, action, pushResult));
+    }
   } else if (action.type === "mine") {
     let beforeWins = 0;
     if (commit) {
@@ -301,6 +320,9 @@ function applyAction(action, commit) {
     }
     state.lastPush = null;
     state.lastAction = { ...action };
+    if (commit) {
+      addLogEntry(buildMineLog(player, action));
+    }
   }
 
   if (commit) {
@@ -315,6 +337,7 @@ function applyAction(action, commit) {
     if (commit) {
       state.metrics.outcome = `${PLAYER_NAMES[winner]} wins`;
       state.gameOver = true;
+      addLogEntry(`${PLAYER_NAMES[winner]} wins the game.`);
     }
   } else {
     state.currentPlayer = otherPlayer(state.currentPlayer);
@@ -334,6 +357,7 @@ function pushLine(state, action, commit) {
   let carry = player;
   const lineIndices = getLineIndices(line, index, side);
   let minesEarned = 0;
+  let ejected = null;
   for (const [r, c] of lineIndices) {
     const cell = state.board[r][c];
     if (cell === "M") {
@@ -364,9 +388,10 @@ function pushLine(state, action, commit) {
       } else if (commit) {
         state.metrics.ejections.self[player] += 1;
       }
+      ejected = carry;
     }
   }
-  return { minesEarned };
+  return { minesEarned, ejected };
 }
 
 function getLineIndices(line, index, side) {
@@ -453,6 +478,30 @@ function isCellLastAction(row, col) {
     if (action.line === "col" && action.index === col) return true;
   }
   return false;
+}
+
+function addLogEntry(text) {
+  moveLog.push(text);
+}
+
+function buildPushLog(player, action, result) {
+  const subject = PLAYER_NAMES[player];
+  const lineLabel = action.line === "row" ? "row" : "column";
+  const index = action.index + 1;
+  const side = action.side === "left" ? "left" : action.side === "right" ? "right" : action.side === "top" ? "top" : "bottom";
+  let ejectionText = "No pieces were pushed off the board.";
+  if (result && result.ejected) {
+    const ejectedOwner = PLAYER_NAMES[result.ejected];
+    ejectionText = `${ejectedOwner}'s piece was pushed off the board.`;
+  }
+  return `${subject} pushed ${lineLabel} ${index} from the ${side}. ${ejectionText}`;
+}
+
+function buildMineLog(player, action) {
+  const subject = PLAYER_NAMES[player];
+  const col = action.col + 1;
+  const row = action.row + 1;
+  return `${subject} placed a mine at [${col}, ${row}].`;
 }
 
 function countImmediateWins(state, player) {
