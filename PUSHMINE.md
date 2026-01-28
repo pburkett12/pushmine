@@ -47,9 +47,7 @@ After each turn (after a push or mine placement), check:
 - If both players have a sequence of 4 in a line after a turn, award the win to whichever player did **not** play the turn (punishes the active player for creating a sequence for their opponent).
 
 Draw condition:
-- If the same move is mirrored more than 3 times in a row, declare a draw and end the game.
-  - Example: Player 1 pushes row 2 from the right. Then Player 2 pushes row 2 from the left. This repeats two more times. Declare a draw.
-- Otherwise, allow indefinite play and detect repetition in metrics (see playtests).
+- Allow indefinite play and detect repetition in metrics (see playtests).
 
 ---
 
@@ -84,6 +82,7 @@ Mines are neutral:
 ## Implementation Constraints / Clarifications (Recommended)
 - A turn is always exactly one action: either Push OR Place Mine.
 - Pushing is allowed from either end of any row/column (total legal pushes per turn = 5 rows * 2 sides + 5 cols * 2 sides = 20).
+- **No Immediate Undo:** you may not perform the exact opposite push on the same row/column as the previous push (prevents mirror back-and-forth).
 - Win check happens after the action resolves (including any mine detonation effects).
 
 ---
@@ -189,8 +188,18 @@ B) **Dud**
 - Alternative: mine is movable, but does not contribute to either player's lines.
 - Use only if you want mines to shift from tactical nuke to positional constraint.
 
-### Anti-cycle rule: No Immediate Undo
-- You may not perform the exact opposite push on the same row/column that was pushed on the immediately previous turn.
-  - Example: if last turn pushed Row 2 from the left, next player cannot push Row 2 from the right.
-- Goal: reduce trivial back-and-forth cycles without adding heavy rules.
-(Only add if repetition shows up in metrics or it feels bad in play.)
+
+---
+
+## Implementation Progress
+
+### Implemented
+- Built a playable 5×5 Pushmine game with full push + mine mechanics, local play vs. AI (easy/medium/hard), and UI controls for starting player and difficulty.
+- Added board UI with edge arrows for push moves, mine placement on empty cells when available, win/draw handling, and gameplay metric tracking for playtest evaluation.
+- Enforced the “no immediate undo” rule to prevent mirrored push-back cycles.
+
+### Questions
+
+### Problems Identified
+
+### Planned Changes
