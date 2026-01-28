@@ -358,11 +358,15 @@ function pushLine(state, action, commit) {
   const lineIndices = getLineIndices(line, index, side);
   let minesEarned = 0;
   let ejected = null;
+  let detonation = null;
   for (const [r, c] of lineIndices) {
     const cell = state.board[r][c];
     if (cell === "M") {
       if (carry) {
         state.board[r][c] = null;
+        if (carry === "P1" || carry === "P2") {
+          detonation = { player: carry, row: r, col: c };
+        }
         if (commit) {
           state.metrics.minesDetonated += 1;
           if (carry === "P1" || carry === "P2") {
@@ -391,7 +395,7 @@ function pushLine(state, action, commit) {
       ejected = carry;
     }
   }
-  return { minesEarned, ejected };
+  return { minesEarned, ejected, detonation };
 }
 
 function getLineIndices(line, index, side) {
@@ -494,7 +498,14 @@ function buildPushLog(player, action, result) {
     const ejectedOwner = PLAYER_NAMES[result.ejected];
     ejectionText = `${ejectedOwner}'s piece was pushed off the board.`;
   }
-  return `${subject} pushed ${lineLabel} ${index} from the ${side}. ${ejectionText}`;
+  let detonationText = "";
+  if (result && result.detonation) {
+    const detonationOwner = PLAYER_NAMES[result.detonation.player];
+    const col = result.detonation.col + 1;
+    const row = result.detonation.row + 1;
+    detonationText = ` ${detonationOwner}'s piece detonated a mine on [${col}, ${row}].`;
+  }
+  return `${subject} pushed ${lineLabel} ${index} from the ${side}. ${ejectionText}${detonationText}`;
 }
 
 function buildMineLog(player, action) {
