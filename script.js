@@ -2,6 +2,7 @@ const BOARD_SIZE = 5;
 const WIN_LENGTH = 4;
 
 const boardEl = document.getElementById("board");
+const gameModeEl = document.getElementById("gameMode");
 const difficultyEl = document.getElementById("difficulty");
 const firstPlayerEl = document.getElementById("firstPlayer");
 const restartBtn = document.getElementById("restart");
@@ -67,22 +68,37 @@ function initialMetrics() {
 
 function resetGame() {
   const first = firstPlayerEl.value;
+  const isLocalMultiplayer = gameModeEl.value === "local";
+  updateModeOptions(isLocalMultiplayer);
   gameState = {
     board: createEmptyBoard(),
     currentPlayer: first,
     inventories: { P1: 0, P2: 0 },
-    aiPlayer: "P2",
-    humanPlayer: "P1",
+    aiPlayer: isLocalMultiplayer ? null : "P2",
+    humanPlayer: isLocalMultiplayer ? "both" : "P1",
+    localMultiplayer: isLocalMultiplayer,
     lastPush: null,
     lastAction: null,
     metrics: initialMetrics(),
     gameOver: false,
   };
   aiBusy = false;
+  difficultyEl.disabled = isLocalMultiplayer;
   addLogEntry("Game restarted.");
   updateRepetitionMetrics();
   render();
   maybeTriggerAi();
+}
+
+function updateModeOptions(isLocalMultiplayer) {
+  const p1Option = firstPlayerEl.querySelector('option[value="P1"]');
+  const p2Option = firstPlayerEl.querySelector('option[value="P2"]');
+  if (p1Option) {
+    p1Option.textContent = isLocalMultiplayer ? "Player 1" : "Player 1 (You)";
+  }
+  if (p2Option) {
+    p2Option.textContent = isLocalMultiplayer ? "Player 2" : "Player 2 (AI)";
+  }
 }
 
 function cloneBoard(board) {
@@ -131,7 +147,7 @@ function render() {
 }
 
 function renderStatus() {
-  const { currentPlayer, gameOver, inventories, humanPlayer } = gameState;
+  const { currentPlayer, gameOver, inventories, humanPlayer, localMultiplayer } = gameState;
   ui.p1Mines.textContent = inventories.P1;
   ui.p2Mines.textContent = inventories.P2;
   if (gameOver) {
@@ -139,14 +155,14 @@ function renderStatus() {
     actionHintEl.textContent = "Restart to play again.";
     return;
   }
-  const isHumanTurn = currentPlayer === humanPlayer;
+  const isHumanTurn = humanPlayer === "both" || currentPlayer === humanPlayer;
   turnStatusEl.innerHTML = `<h2>Turn: ${PLAYER_NAMES[currentPlayer]}</h2>`;
   if (isHumanTurn) {
     actionHintEl.textContent = inventories[currentPlayer]
       ? "Click an arrow to push or click an empty cell to place a mine."
       : "Click an arrow to push a line.";
   } else {
-    actionHintEl.textContent = "AI is thinking...";
+    actionHintEl.textContent = localMultiplayer ? "Player 2, make your move." : "AI is thinking...";
   }
 }
 
@@ -262,7 +278,8 @@ function arrowDirection(r, c) {
 }
 
 function canPlayerAct() {
-  return !gameState.gameOver && gameState.currentPlayer === gameState.humanPlayer && !aiBusy;
+  if (gameState.gameOver || aiBusy) return false;
+  return gameState.humanPlayer === "both" || gameState.currentPlayer === gameState.humanPlayer;
 }
 
 function handleArrowClick(event) {
@@ -623,7 +640,7 @@ function countOpenThrees(board, player) {
 
 function maybeTriggerAi() {
   if (gameState.gameOver) return;
-  if (gameState.currentPlayer !== gameState.aiPlayer) return;
+  if (!gameState.aiPlayer || gameState.currentPlayer !== gameState.aiPlayer) return;
   aiBusy = true;
   render();
   setTimeout(() => {
@@ -722,8 +739,10 @@ function negamax(state, depth, alpha, beta, player, rootPlayer, table) {
 
 restartBtn.addEventListener("click", resetGame);
 firstPlayerEl.addEventListener("change", resetGame);
+gameModeEl.addEventListener("change", resetGame);
 
 difficultyEl.addEventListener("change", () => {
+  if (!gameState.aiPlayer) return;
   if (!gameState.gameOver && gameState.currentPlayer === gameState.aiPlayer) {
     maybeTriggerAi();
   }
