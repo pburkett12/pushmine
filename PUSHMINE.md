@@ -156,6 +156,8 @@ Combine lightweight features:
     - winning moves first
     - moves that block opponent immediate wins
     - mine placements that create favorable interruptions
+  - apply the Easy-mode tactical checks (take immediate win, or block opponent immediate win with pushes or mines)
+  - if multiple actions share the best score, pick randomly among them to avoid deterministic openings
 
 **Hard**
 - Deeper search + caching:
@@ -166,6 +168,8 @@ Combine lightweight features:
     - recognize forks (two simultaneous 4-threats)
     - assign higher value to mine placements that “freeze” a critical lane without gifting tempo
   - optional: repetition avoidance (penalize returning to recently seen states)
+  - apply the Easy-mode tactical checks (take immediate win, or block opponent immediate win with pushes or mines)
+  - if multiple actions share the best score, pick randomly among them to avoid deterministic openings
 
 ---
 
