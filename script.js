@@ -771,3 +771,32 @@ difficultyEl.addEventListener("change", () => {
 });
 
 resetGame();
+
+function setGameStateForTest(state) {
+  gameState = state;
+}
+
+function getGameStateForTest() {
+  return gameState;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    BOARD_SIZE,
+    WIN_LENGTH,
+    createEmptyBoard,
+    initialMetrics,
+    cloneBoard,
+    otherPlayer,
+    determineWinner,
+    countImmediateWins,
+    generateLegalActions,
+    generatePushActions,
+    applyAction,
+    chooseAiAction,
+    chooseEasyAction,
+    chooseSearchAction,
+    setGameStateForTest,
+    getGameStateForTest,
+  };
+}

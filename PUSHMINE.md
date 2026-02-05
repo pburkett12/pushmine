@@ -171,6 +171,13 @@ Combine lightweight features:
   - apply the Easy-mode tactical checks (take immediate win, or block opponent immediate win with pushes or mines)
   - if multiple actions share the best score, pick randomly among them to avoid deterministic openings
 
+### AI Regression Scenarios (Automated)
+These live in `tests/ai_scenarios.test.js` and should be extended as new edge cases appear.
+- **Scenario 1:** P1 has three stones in a straight line with a winning push available next turn.
+  - Expected: AI blocks by placing a mine in the push path or by pushing a stone off the line.
+- **Scenario 2:** P1 has three stones with a gap, and a nearby stone can be pushed into the gap to complete four-in-a-row.
+  - Expected: AI blocks by placing a mine in the push path or by pushing a stone off the line.
+
 ---
 
 ## Notes / Tweaks to Keep in the Back Pocket
