@@ -657,30 +657,47 @@ function chooseAiAction(difficulty) {
   return chooseSearchAction(6, true);
 }
 
-function chooseEasyAction() {
-  const player = gameState.currentPlayer;
-  const opponent = otherPlayer(player);
-  const pushActions = generatePushActions(gameState);
-  const winningPushes = pushActions.filter((action) => {
+function getImmediateWinningPushes(state, player) {
+  const pushActions = generatePushActions(state);
+  return pushActions.filter((action) => {
     const sim = applyAction(action, false);
     return determineWinner(sim.board, player) === player;
   });
+}
+
+function getBlockingActions(state, opponent) {
+  const actions = generateLegalActions(state);
+  return actions.filter((action) => {
+    const sim = applyAction(action, false);
+    return countImmediateWins(sim, opponent) === 0;
+  });
+}
+
+function chooseTacticalAction(state) {
+  const player = state.currentPlayer;
+  const opponent = otherPlayer(player);
+  const winningPushes = getImmediateWinningPushes(state, player);
   if (winningPushes.length) {
     return winningPushes[Math.floor(Math.random() * winningPushes.length)];
   }
 
-  const opponentImmediateWins = countImmediateWins(gameState, opponent);
-  if (gameState.inventories[player] > 0 && opponentImmediateWins > 0) {
-    const mineActions = generateLegalActions(gameState).filter((action) => action.type === "mine");
-    const blocking = mineActions.filter((action) => {
-      const sim = applyAction(action, false);
-      const after = countImmediateWins(sim, opponent);
-      return after === 0;
-    });
+  const opponentImmediateWins = countImmediateWins(state, opponent);
+  if (opponentImmediateWins > 0) {
+    const blocking = getBlockingActions(state, opponent);
     if (blocking.length) {
       return blocking[Math.floor(Math.random() * blocking.length)];
     }
   }
+
+  return null;
+}
+
+function chooseEasyAction() {
+  const player = gameState.currentPlayer;
+  const opponent = otherPlayer(player);
+  const pushActions = generatePushActions(gameState);
+  const tactical = chooseTacticalAction(gameState);
+  if (tactical) return tactical;
 
   const safePushes = pushActions.filter((action) => {
     const sim = applyAction(action, false);
@@ -693,19 +710,24 @@ function chooseEasyAction() {
 
 function chooseSearchAction(depth, useTable = false) {
   const player = gameState.currentPlayer;
+  const tactical = chooseTacticalAction(gameState);
+  if (tactical) return tactical;
+
   const actions = generateLegalActions(gameState);
   const table = useTable ? new Map() : null;
   let bestScore = -Infinity;
-  let bestAction = actions[0];
+  let bestActions = [];
   for (const action of actions) {
     const sim = applyAction(action, false);
     const score = -negamax(sim, depth - 1, -Infinity, Infinity, otherPlayer(player), player, table);
     if (score > bestScore) {
       bestScore = score;
-      bestAction = action;
+      bestActions = [action];
+    } else if (score === bestScore) {
+      bestActions.push(action);
     }
   }
-  return bestAction;
+  return bestActions[Math.floor(Math.random() * bestActions.length)];
 }
 
 function negamax(state, depth, alpha, beta, player, rootPlayer, table) {
@@ -749,3 +771,32 @@ difficultyEl.addEventListener("change", () => {
 });
 
 resetGame();
+
+function setGameStateForTest(state) {
+  gameState = state;
+}
+
+function getGameStateForTest() {
+  return gameState;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    BOARD_SIZE,
+    WIN_LENGTH,
+    createEmptyBoard,
+    initialMetrics,
+    cloneBoard,
+    otherPlayer,
+    determineWinner,
+    countImmediateWins,
+    generateLegalActions,
+    generatePushActions,
+    applyAction,
+    chooseAiAction,
+    chooseEasyAction,
+    chooseSearchAction,
+    setGameStateForTest,
+    getGameStateForTest,
+  };
+}
